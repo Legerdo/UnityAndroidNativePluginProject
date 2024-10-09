@@ -2,7 +2,14 @@ package com.legeodo.aosextension;
 
 import com.unity3d.player.UnityPlayer;
 import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.widget.Toast;
+
+import org.json.JSONArray;
+
+import java.util.ArrayList;
 
 public class MyNativeClass {
 	// 싱글톤 인스턴스
@@ -40,4 +47,39 @@ public class MyNativeClass {
 			UnityPlayer.UnitySendMessage(objName, objMethod, "Context가 설정되지 않았습니다.");
 		}
 	}
+
+	public static String[] GetAllImages() {
+		Context context = UnityPlayer.currentActivity.getApplicationContext();
+		Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+		String[] projection = {MediaStore.Images.Media.DATA};
+
+		Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null);
+
+		ArrayList<String> imagePaths = new ArrayList<>();
+		if (cursor != null) {
+			while (cursor.moveToNext()) {
+				String path = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA));
+				imagePaths.add(path);
+			}
+			cursor.close();
+		}
+
+		// Convert the list to an array and return
+		return imagePaths.toArray(new String[0]);
+	}
+
+	public static void RequestImagesFromGallery() {
+		String[] images = GetAllImages();
+
+		JSONArray jsonArray = new JSONArray();
+		for (String image : images) {
+			jsonArray.put(image);
+		}
+
+		String jsonImagePaths = jsonArray.toString();
+
+		// Unity로 문자열 전송
+		UnityPlayer.UnitySendMessage("GalleryHelper", "OnReceiveImages", jsonImagePaths);
+	}
+
 }
